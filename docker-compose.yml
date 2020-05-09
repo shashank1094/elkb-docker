@@ -15,8 +15,8 @@ services:
         source: elasticsearch
         target: /usr/share/elasticsearch/data
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - "9276:9200"
+      - "9376:9300"
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
       ELASTIC_PASSWORD: changeme
@@ -41,9 +41,9 @@ services:
         target: /usr/share/logstash/pipeline
         read_only: true
     ports:
-      - "5000:5000/tcp"
-      - "5000:5000/udp"
-      - "9600:9600"
+      - "5076:5000/tcp"
+      - "5076:5000/udp"
+      - "9676:9600"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
@@ -62,7 +62,27 @@ services:
         target: /usr/share/kibana/config/kibana.yml
         read_only: true
     ports:
-      - "5601:5601"
+      - "5676:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:7.6.2
+    user: root
+    command: ["--strict.perms=false", "-system.hostfs=/hostfs"]
+    volumes:
+      - './beats/metricbeat/config/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - '/sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro'
+      - '/proc:/hostfs/proc:ro'
+      - '/:/hostfs:ro'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOST=http://kibana:5601
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
     networks:
       - elk
     depends_on:
